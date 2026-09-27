@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L'Expédition Entrepreneuriale | Plateforme Interactive</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #1A365D; --secondary: #E53E3E; --accent: #3182CE;
+            --bg: #F7FAFC; --card-bg: #FFFFFF; --text-dark: #2D3748;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; background-color: var(--bg); color: var(--text-dark); margin: 0; padding: 0; overflow-x: hidden; transition: background-color 0.5s, color 0.5s; }
+
+        /* Vues & Rôles */
+        .view { display: none; min-height: 100vh; width: 100vw; flex-direction: column; }
+        .view.active { display: flex; }
+        body:not(.is-host) .host-only { display: none !important; }
+        body:not(.is-client) .client-only { display: none !important; }
+
+        /* Boutons */
+        .btn { padding: 15px 30px; font-size: 1.2em; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; transition: 0.2s; text-align: center; }
+        .btn-primary { background-color: var(--primary); }
+        .btn-primary:hover { filter: brightness(0.85); }
+        .btn-action { background-color: #38A169; }
+        .btn-action:hover { filter: brightness(0.85); }
+        .btn-config { background-color: var(--text-dark); color: white; border-radius: 50px; }
+
+        /* Landing */
+        #landing-view {
+            background: linear-gradient(rgba(0,0,0, 0.6), rgba(0,0,0, 0.8)), url('https://images.unsplash.com/photo-1556761175-5973dc0f32b7?auto=format&fit=crop&w=1920&q=80') center/cover;
+            color: white; justify-content: center; align-items: center; text-align: center; padding: 20px;
+        }
+        .landing-title { font-size: 3.5em; font-weight: 900; margin-bottom: 10px; text-transform: uppercase; }
+        .landing-subtitle { font-size: 1.8em; font-weight: 300; margin-bottom: 40px; color: #E2E8F0; }
+        .role-selection { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+        .role-btn { padding: 20px 40px; font-size: 1.5em; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.3); transition: transform 0.2s; }
+        .role-btn:hover { transform: translateY(-5px); }
+        .btn-host { background-color: var(--secondary); color: white; }
+        .btn-client { background-color: white; color: var(--primary); }
+        .footer-credits { position: absolute; bottom: 20px; font-size: 0.9em; color: #E2E8F0; text-align: center; }
+
+        /* Lobbies */
+        .lobby-container { max-width: 900px; margin: 40px auto; background: var(--card-bg); padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 95%; }
+        .lobby-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--bg); padding-bottom: 20px; position: relative; }
+        .qr-section { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; background: var(--bg); padding: 20px; border-radius: 10px; }
+        #qrcode-img { border: 10px solid white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .room-code { font-size: 2.5em; font-weight: bold; color: var(--accent); letter-spacing: 5px; }
+        .participants-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px; min-height: 50px; justify-content: center; }
+        .participant-badge { background: var(--primary); color: white; padding: 8px 15px; border-radius: 20px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .join-form { display: flex; flex-direction: column; gap: 15px; max-width: 400px; margin: 0 auto; }
+        .join-form input { padding: 15px; font-size: 1.2em; border: 2px solid #CBD5E0; border-radius: 8px; text-align: center; background: var(--bg); color: var(--text-dark); }
+        
+        .rules-card { background: var(--card-bg); padding: 40px; border-radius: 15px; max-width: 800px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 95%; margin: 0 auto; }
+        .rules-card h2 { color: var(--primary); font-size: 2.5em; margin-top: 0; border-bottom: 3px solid var(--accent); padding-bottom: 10px; }
+        .rules-card ul { font-size: 1.2em; line-height: 1.8; }
+        .rules-card li { margin-bottom: 15px; }
+
+        /* Console Audio Live (Animateur) */
+        .live-music-console { background: var(--text-dark); color: white; padding: 10px 20px; border-radius: 10px; display: flex; align-items: center; gap: 15px; width: 100%; max-width: 1200px; margin-bottom: 15px; flex-wrap: wrap; }
+        .track-display { flex-grow: 1; min-width: 150px; background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 5px; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .music-controls-live { display: flex; gap: 10px; }
+        .music-controls-live button { background: none; border: none; color: white; font-size: 1.5em; cursor: pointer; transition: 0.2s; }
+        .music-controls-live button:hover { color: var(--accent); }
+        .vol-slider-live { display: flex; align-items: center; gap: 10px; }
+        .vol-slider-live input[type="range"] { width: 100px; cursor: pointer; }
+
+        /* Game View */
+        #game-view { padding: 20px; align-items: center; }
+        .game-header { width: 100%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .timer-container { background-color: var(--secondary); color: white; font-size: 4em; font-weight: bold; padding: 10px 40px; border-radius: 15px; margin-bottom: 20px; text-align: center; width: 100%; max-width: 1200px; transition: 0.3s; }
+        .card { background: var(--card-bg); padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 1200px; flex-grow: 1; }
+        .scenario-header { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .scenario-content { flex-grow: 1; }
+        .scenario-title { font-size: 2em; color: var(--primary); margin-top: 0; }
+        .scenario-text { font-size: 1.2em; margin-bottom: 20px; line-height: 1.5; font-weight: 500; }
+        
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .option { background: var(--bg); padding: 20px; border-radius: 10px; border: 2px solid transparent; border-left: 8px solid var(--primary); font-size: 1.1em; display: flex; align-items: center; cursor: pointer; transition: 0.2s; color: var(--text-dark); }
+        body.is-client .option { background: var(--card-bg); border: 2px solid #CBD5E0; border-left: 8px solid var(--primary); padding: 25px 15px; font-size: 1.3em; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        body.is-client .option.selected { border-color: var(--accent); background: var(--bg); border-left-color: var(--accent); transform: scale(1.02); }
+        .option-letter { font-size: 2em; font-weight: bold; margin-right: 15px; color: var(--secondary); }
+        .controls { margin-top: 30px; display: flex; gap: 20px; justify-content: center; width: 100%; flex-wrap: wrap; }
+
+        /* End Pages & Profiles */
+        .end-page { justify-content: flex-start; align-items: center; padding: 20px; overflow-y: auto; }
+        .end-container { background: var(--card-bg); padding: 40px; border-radius: 15px; max-width: 1200px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 40px; }
+        .stats-repartition { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; margin: 30px 0; padding: 20px; background: var(--bg); border-radius: 10px; border: 1px solid #E2E8F0; }
+        .stat-box { text-align: center; flex: 1; min-width: 150px; }
+        .stat-box h3 { margin: 0 0 10px 0; font-size: 1.2em; color: var(--text-dark); }
+        .stat-number { font-size: 2.5em; font-weight: bold; }
+        .results-table { width: 100%; border-collapse: collapse; margin-top: 20px; color: var(--text-dark); }
+        .results-table th, .results-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--bg); }
+        .results-table th { background: var(--primary); color: white; }
+        
+        /* DIAPORAMA PRESENTATION */
+        .pres-slide { display: none; text-align: center; padding: 40px 20px; }
+        .pres-slide.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .pres-icon { font-size: 5em; margin-bottom: 20px; }
+        .pres-title { font-size: 3em; margin-bottom: 20px; }
+        .pres-desc { font-size: 1.5em; line-height: 1.6; max-width: 800px; margin: 0 auto; text-align: left; background: var(--bg); padding: 30px; border-radius: 15px; }
+        
+        /* Slide 5: Standard Profile */
+        .anatomy-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-top: 30px; }
+        .anatomy-image { width: 250px; height: 250px; border-radius: 50%; object-fit: cover; border: 8px solid var(--primary); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .anatomy-list { text-align: left; max-width: 500px; font-size: 1.2em; }
+        .anatomy-item { background: var(--bg); margin-bottom: 15px; padding: 15px 20px; border-radius: 10px; display: flex; align-items: center; gap: 15px; border-left: 5px solid var(--accent); }
+        .anatomy-item i { font-size: 2em; color: var(--primary); width: 40px; text-align: center; }
+
+        /* Modal Config */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card-bg); color: var(--text-dark); padding: 30px; border-radius: 15px; width: 95%; max-width: 900px; height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #CBD5E0; border-radius: 5px; background: var(--bg); color: var(--text-dark); }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;}
+        .tab-btn { padding: 10px 20px; border: none; background: var(--bg); color: var(--text-dark); border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .tab-content { display: none; flex-grow: 1; overflow-y: auto; padding-right: 10px; }
+        .tab-content.active { display: block; }
+
+        .list-item { background: var(--bg); padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-left: 5px solid var(--primary); }
+        .list-actions button { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; margin-left: 5px; color: white; }
+        .btn-edit { background: var(--accent); } .btn-delete { background: var(--secondary); }
+        
+        @media (max-width: 768px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .timer-container { font-size: 3em; padding: 10px; }
+            .live-music-console { justify-content: center; }
+            .pres-title { font-size: 2em; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. PAGE DE GARDE -->
+    <div id="landing-view" class="view active">
+        <h1 class="landing-title">L'Expédition Entrepreneuriale</h1>
+        <div class="landing-subtitle">Plateforme Interactive Multijoueur</div>
+        <div class="role-selection">
+            <button class="role-btn btn-host" onclick="initHostLobby()"><i class="fas fa-chalkboard-teacher"></i> Créer une Session (Animateur)</button>
+            <button class="role-btn btn-client" onclick="switchView('client-join-view')"><i class="fas fa-mobile-alt"></i> Rejoindre (Manuel)</button>
+        </div>
+        <div class="footer-credits">Créé par <strong>M. Saddek Gridi</strong> | Consultant en Entrepreneuriat</div>
+    </div>
+
+    <!-- 2. SALLE D'ATTENTE ANIMATEUR -->
+    <div id="host-lobby-view" class="view" style="align-items: center; padding: 20px;">
+        <div class="lobby-container">
+            <div class="lobby-header">
+                <h2><i class="fas fa-users-cog"></i> Salle de Contrôle</h2>
+                <button class="btn btn-config host-only" onclick="openConfig()" style="position: absolute; top: 0; right: 0;"><i class="fas fa-cogs"></i> Paramètres</button>
+                <p style="margin-top:20px;">Demandez aux participants de scanner ce QR Code.</p>
+            </div>
+            <div class="qr-section">
+                <img id="qrcode-img" src="" alt="QR Code" style="display:none; margin: 15px 0;">
+                <div>Code manuel : <span class="room-code" id="display-room-code">----</span></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3>Participants connectés (<span id="participant-count">0</span>)</h3>
+            </div>
+            <div class="participants-list" id="host-participants-list">
+                <em style="color: #A0AEC0;">En attente de connexion...</em>
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-action" style="font-size: 1.5em; padding: 20px 50px;" onclick="changeGameState('RULES')">Continuer vers les Règles <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. ÉCRAN DE CONNEXION PARTICIPANT -->
+    <div id="client-join-view" class="view" style="align-items: center; justify-content: center; padding: 20px;">
+        <div class="lobby-container" style="max-width: 500px; text-align: center;">
+            <h2>Rejoindre l'Expédition</h2>
+            <div class="join-form">
+                <input type="text" id="join-room-code" placeholder="Code de la session (ex: abc12)">
+                <input type="text" id="join-nickname" placeholder="Votre Prénom / Pseudo" maxlength="20">
+                <button class="btn btn-primary" id="btn-connect-client" onclick="clientConnectToHost()">Se Connecter</button>
+            </div>
+            <div id="client-status-msg" style="margin-top: 20px; font-weight: bold; color: var(--accent);"></div>
+        </div>
+    </div>
+
+    <!-- 4. PAGE DES RÈGLES -->
+    <div id="rules-view" class="view" style="justify-content: center; align-items: center; padding: 40px;">
+        <div class="rules-card">
+            <h2><i class="fas fa-book-open"></i> Règles du Jeu</h2>
+            <ul>
+                <li><strong>Le Comité :</strong> Vous formez le comité de direction d'une startup (<span id="display-players">4 à 5</span> joueurs).</li>
+                <li><strong>Le Chronomètre :</strong> Le temps de débat varie selon l'urgence de la situation !</li>
+                <li><strong>L'Action :</strong> Appuyez sur la réponse sur votre écran. Vous pouvez modifier votre choix.</li>
+            </ul>
+            <div class="host-only" style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-action" style="padding: 15px 40px; font-size: 1.2em;" onclick="hostStartGame()"><i class="fas fa-rocket"></i> Lancer le Jeu</button>
+            </div>
+            <div class="client-only" style="text-align: center; margin-top: 30px; font-size: 1.2em; font-weight: bold; color: var(--accent);">
+                <i class="fas fa-spinner fa-spin"></i> En attente de l'animateur...
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. PAGE DE JEU -->
+    <div id="game-view" class="view">
+        <div class="game-header host-only">
+            <div style="font-size: 1.5em; font-weight: bold; color: var(--primary);"><i class="fas fa-chart-line"></i> En direct</div>
+            <div class="tools-bar">
+                <button class="btn btn-config" onclick="openConfig()"><i class="fas fa-cogs"></i> Config Complète</button>
+            </div>
+        </div>
+
+        <!-- CONSOLE MUSICALE (ANIMATEUR) -->
+        <div class="live-music-console host-only">
+            <i class="fas fa-music"></i>
+            <div class="track-display" id="live-track-name">Piste...</div>
+            <div class="music-controls-live">
+                <button onclick="prevTrack()"><i class="fas fa-step-backward"></i></button>
+                <button onclick="toggleMusic()"><i class="fas fa-play" id="live-play-btn"></i></button>
+                <button onclick="stopMusic()"><i class="fas fa-stop"></i></button>
+                <button onclick="nextTrack()"><i class="fas fa-step-forward"></i></button>
+            </div>
+            <div class="vol-slider-live">
+                <i class="fas fa-volume-down"></i>
+                <input type="range" id="live-vol-slider" min="0" max="1" step="0.05" oninput="changeLiveVolume(this.value)">
+                <i class="fas fa-volume-up"></i>
+            </div>
+        </div>
+
+        <div class="timer-container" id="timer-display">03:00</div>
+
+        <div class="card">
+            <div class="scenario-header">
+                <div class="scenario-content">
+                    <h2 class="scenario-title"><span id="s-index">1/1</span> - <span id="s-title">Titre</span></h2>
+                    <div class="scenario-text" id="s-text">Texte de la situation...</div>
+                </div>
+            </div>
+            <div class="options-grid">
+                <div class="option" id="btn-opt-a" onclick="clientSelectOption('A')"><span class="option-letter">A</span> <span id="opt-a">Option A</span></div>
+                <div class="option" id="btn-opt-b" onclick="clientSelectOption('B')"><span class="option-letter">B</span> <span id="opt-b">Option B</span></div>
+                <div class="option" id="btn-opt-c" onclick="clientSelectOption('C')"><span class="option-letter">C</span> <span id="opt-c">Option C</span></div>
+                <div class="option" id="btn-opt-d" onclick="clientSelectOption('D')"><span class="option-letter">D</span> <span id="opt-d">Option D</span></div>
+            </div>
+        </div>
+
+        <div class="controls host-only">
+            <button class="btn btn-primary" onclick="hostPrevScenario()"><i class="fas fa-arrow-left"></i> Précédent</button>
+            <button class="btn btn-action" id="start-timer-btn" onclick="hostToggleTimer()"><i class="fas fa-stopwatch"></i> Démarrer le Chrono</button>
+            <button class="btn btn-primary" id="next-btn" onclick="hostNextScenario()">Suivant <i class="fas fa-arrow-right"></i></button>
+        </div>
+        
+        <div class="client-only" style="margin-top: 20px; text-align: center; color: var(--text-dark); width: 100%;">
+            <i class="fas fa-info-circle"></i> Appuyez sur une réponse pour voter.
+        </div>
+    </div>
+
+    <!-- 6. RÉSULTATS (HOST) -->
+    <div id="host-end-view" class="view end-page">
+        <div class="end-container host-only">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin:0;"><i class="fas fa-clipboard-check"></i> Bilan de l'Expédition</h2>
+                <button class="btn btn-action" onclick="changeGameState('PRESENTATION')">Passer à la Présentation <i class="fas fa-arrow-right"></i></button>
+            </div>
+            
+            <div class="stats-repartition">
+                <div class="stat-box"><h3>Connecteur (A)</h3><div id="stat-A" class="stat-number" style="color: #D69E2E;">0</div></div>
+                <div class="stat-box"><h3>Créateur (B)</h3><div id="stat-B" class="stat-number" style="color: #805AD5;">0</div></div>
+                <div class="stat-box"><h3>Conquérant (C)</h3><div id="stat-C" class="stat-number" style="color: #E53E3E;">0</div></div>
+                <div class="stat-box"><h3>Architecte (D)</h3><div id="stat-D" class="stat-number" style="color: #3182CE;">0</div></div>
+            </div>
+
+            <h3 style="color: var(--primary); margin-top: 30px;">Détail par Participant</h3>
+            <div style="overflow-x: auto;">
+                <table class="results-table">
+                    <thead><tr><th>Participant</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Profil Dominant</th></tr></thead>
+                    <tbody id="host-results-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. RÉSULTATS (CLIENT - TEMPORAIRE AVANT PRESENTATION) -->
+    <div id="client-end-view" class="view end-page">
+        <div class="end-container client-only" style="max-width: 600px; text-align: center;">
+            <h2>Calcul des résultats...</h2>
+            <div style="margin-top: 20px; font-weight: bold; color: var(--accent);"><i class="fas fa-eye"></i> Regardez l'écran principal pour la présentation détaillée.</div>
+        </div>
+    </div>
+
+    <!-- 8. DIAPORAMA DE PRÉSENTATION DES PROFILS (HOST + CLIENT SYNCHRONISÉS) -->
+    <div id="presentation-view" class="view end-page">
+        <div class="end-container">
+            
+            <div class="host-only" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="changeGameState('END')"><i class="fas fa-arrow-left"></i> Retour Scores</button>
+                <button class="btn btn-secondary" style="background:#718096;" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> Quitter</button>
+            </div>
+
+            <!-- Slide 1 : Connecteur -->
+            <div class="pres-slide" id="slide-0">
+                <i class="fas fa-hands-helping pres-icon" style="color: #D69E2E;"></i>
+                <h2 class="pres-title" style="color: #D69E2E;">Le Connecteur (A)</h2>
+                <div class="pres-desc" style="border-left: 8px solid #D69E2E;">
+                    <p><strong><i class="fas fa-plus-circle" style="color: #38A169;"></i> Forces :</strong> L'humain avant tout. Empathie, force de persuasion, création d'alliances stratégiques. C'est l'excellent commercial qui fédère l'équipe.</p>
+                    <p><strong><i class="fas fa-exclamation-triangle" style="color: #E53E3E;"></i> Vigilance :</strong> Peut s'éparpiller dans trop de relations, fuir les conflits et manquer de rigueur administrative.</p>
+                </div>
+            </div>
+
+            <!-- Slide 2 : Créateur -->
+            <div class="pres-slide" id="slide-1">
+                <i class="fas fa-lightbulb pres-icon" style="color: #805AD5;"></i>
+                <h2 class="pres-title" style="color: #805AD5;">Le Créateur (B)</h2>
+                <div class="pres-desc" style="border-left: 8px solid #805AD5;">
+                    <p><strong><i class="fas fa-plus-circle" style="color: #38A169;"></i> Forces :</strong> L'agilité et l'innovation. Il maîtrise le <em>Lean Startup</em>, teste rapidement et trouve des solutions hors des sentiers battus.</p>
+                    <p><strong><i class="fas fa-exclamation-triangle" style="color: #E53E3E;"></i> Vigilance :</strong> Le perfectionnisme technique. Il peut s'enfermer dans la création de son produit en oubliant de vérifier si le marché est prêt à payer.</p>
+                </div>
+            </div>
+
+            <!-- Slide 3 : Conquérant -->
+            <div class="pres-slide" id="slide-2">
+                <i class="fas fa-rocket pres-icon" style="color: #E53E3E;"></i>
+                <h2 class="pres-title" style="color: #E53E3E;">Le Conquérant (C)</h2>
+                <div class="pres-desc" style="border-left: 8px solid #E53E3E;">
+                    <p><strong><i class="fas fa-plus-circle" style="color: #38A169;"></i> Forces :</strong> L'audace et l'action. Il fonce, prend des décisions sous pression et incarne le courage entrepreneurial face à l'adversité.</p>
+                    <p><strong><i class="fas fa-exclamation-triangle" style="color: #E53E3E;"></i> Vigilance :</strong> La prise de risque peut devenir aveugle. Une gestion parfois trop brutale qui amène un risque de burn-out pour lui et son équipe.</p>
+                </div>
+            </div>
+
+            <!-- Slide 4 : Architecte -->
+            <div class="pres-slide" id="slide-3">
+                <i class="fas fa-chess-knight pres-icon" style="color: #3182CE;"></i>
+                <h2 class="pres-title" style="color: #3182CE;">L'Architecte (D)</h2>
+                <div class="pres-desc" style="border-left: 8px solid #3182CE;">
+                    <p><strong><i class="fas fa-plus-circle" style="color: #38A169;"></i> Forces :</strong> La rigueur et la vision. Il structure l'entreprise, calcule la rentabilité, pose des process solides et sécurise l'avenir financier.</p>
+                    <p><strong><i class="fas fa-exclamation-triangle" style="color: #E53E3E;"></i> Vigilance :</strong> La paralysie par l'analyse. Face à l'imprévu, le plan initial doit parfois être sacrifié, ce qu'il a du mal à accepter.</p>
+                </div>
+            </div>
+
+            <!-- Slide 5 : L'Entrepreneur Standard (L'Humain Complet) -->
+            <div class="pres-slide" id="slide-4">
+                <h2 class="pres-title" style="color: var(--primary);">L'Entrepreneur Ultime<br><span style="font-size: 0.6em; color: var(--text-dark);">L'alliance des 4 forces</span></h2>
+                
+                <div class="anatomy-container">
+                    <!-- Image drôle (Unsplash : chien en costume "Le Boss") -->
+                    <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=600&q=80" alt="Chien Boss" class="anatomy-image">
+                    
+                    <div class="anatomy-list">
+                        <p style="margin-top:0; font-weight:bold;">Au final, un vrai chef d'entreprise combine ces 5 attributs vitaux :</p>
+                        <div class="anatomy-item">
+                            <i class="fas fa-eye"></i>
+                            <div><strong>1. La Vue (Vision)</strong> : Repérer l'opportunité avant les autres.</div>
+                        </div>
+                        <div class="anatomy-item">
+                            <i class="fas fa-deaf"></i>
+                            <div><strong>2. L'Ouïe (Écoute)</strong> : Entendre les vrais problèmes du terrain.</div>
+                        </div>
+                        <div class="anatomy-item">
+                            <i class="fas fa-brain"></i>
+                            <div><strong>3. Le Cerveau (Raison)</strong> : Calculer, planifier et structurer.</div>
+                        </div>
+                        <div class="anatomy-item">
+                            <i class="fas fa-heart"></i>
+                            <div><strong>4. Le Cœur (Passion/Courage)</strong> : La résilience pour ne jamais abandonner.</div>
+                        </div>
+                        <div class="anatomy-item">
+                            <i class="fas fa-running"></i>
+                            <div><strong>5. Les Jambes (Action)</strong> : Aller sur le terrain, avancer malgré la peur.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contrôles Diaporama (Animateur uniquement) -->
+            <div class="host-only controls" style="margin-top: 40px;">
+                <button class="btn btn-primary" id="pres-prev-btn" onclick="hostPrevSlide()"><i class="fas fa-arrow-left"></i> Précédent</button>
+                <button class="btn btn-action" id="pres-next-btn" onclick="hostNextSlide()">Suivant <i class="fas fa-arrow-right"></i></button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 9. MODAL CONFIGURATION GLOBALE -->
+    <div id="config-modal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; border-bottom: 2px solid var(--bg); padding-bottom: 10px; margin-bottom: 20px;">
+                <h2 style="margin: 0; color: var(--primary);"><i class="fas fa-cogs"></i> Paramètres</h2>
+                <button style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-dark);" onclick="closeConfig()"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="openTab('tab-general')"><i class="fas fa-sliders-h"></i> Thème & Temps</button>
+                <button class="tab-btn" onclick="openTab('tab-music')"><i class="fas fa-music"></i> Playlist Audio</button>
+                <button class="tab-btn" onclick="openTab('tab-scenarios')"><i class="fas fa-list"></i> Scénarios</button>
+                <button class="tab-btn" onclick="openTab('tab-save')"><i class="fas fa-save"></i> Data</button>
+            </div>
+
+            <!-- ONGLET GÉNÉRAL & THEMES -->
+            <div id="tab-general" class="tab-content active">
+                <div class="form-group">
+                    <label>Thème Visuel de l'Interface</label>
+                    <select id="conf-theme" onchange="applyThemeLive()">
+                        <option value="corporate">Classique (Bleu Corporate)</option>
+                        <option value="startup">Nuit Startup (Mode Sombre)</option>
+                        <option value="nature">Green Growth (Écologique)</option>
+                        <option value="sunset">Créatif (Orange Sunset)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Temps par défaut (Nouveaux scénarios)</label>
+                    <input type="number" id="global-timer" value="120">
+                </div>
+                <div class="form-group">
+                    <label>Joueurs par équipe (Affichage)</label>
+                    <select id="global-players">
+                        <option value="1 à 2">1 à 2 joueurs</option>
+                        <option value="2 à 3">2 à 3 joueurs</option>
+                        <option value="4 à 5" selected>4 à 5 joueurs</option>
+                        <option value="6 ou plus">6 joueurs ou plus</option>
+                    </select>
+                </div>
+                <button class="btn btn-action" onclick="saveGlobalSettings()">Sauvegarder les Paramètres</button>
+            </div>
+
+            <!-- ONGLET MUSIQUE / PLAYLIST -->
+            <div id="tab-music" class="tab-content">
+                <div style="background: var(--bg); padding: 20px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin:0;"><i class="fas fa-list-ol"></i> Votre Playlist Active</h3>
+                    </div>
+                    
+                    <div id="playlist-container"></div>
+                    
+                    <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px dashed #CBD5E0; margin-top: 15px;">
+                        <h4>Ajouter une piste (URL MP3)</h4>
+                        <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                            <input type="text" id="new-track-title" placeholder="Titre (ex: Motivation)" style="flex:1;">
+                            <input type="text" id="new-track-url" placeholder="Lien direct MP3 (https://...)" style="flex:2;">
+                            <button class="btn btn-primary" style="padding: 10px;" onclick="addTrackToPlaylist()"><i class="fas fa-plus"></i></button>
+                        </div>
+                        
+                        <div style="margin-top: 15px; border-top: 1px solid #CBD5E0; padding-top: 15px;">
+                            <h4><i class="fas fa-file-audio"></i> Ou utiliser un fichier Local (PC)</h4>
+                            <input type="file" accept="audio/*" onchange="addLocalTrack(event)">
+                            <small style="display:block; color: #E53E3E; margin-top: 5px;">Attention : Les fichiers locaux ne seront pas conservés dans le JSON.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ONGLET SCÉNARIOS -->
+            <div id="tab-scenarios" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Vos Scénarios (<span id="scenario-count">0</span>)</h3>
+                    <button class="btn btn-action" style="padding: 10px;" onclick="prepareAddScenario()"><i class="fas fa-plus"></i> Ajouter</button>
+                </div>
+                <div id="scenario-list"></div>
+                <div id="edit-scenario-form" style="display:none; background: var(--bg); padding: 20px; border-radius: 8px; border: 2px solid var(--accent); margin-top: 20px;">
+                    <h3 id="edit-form-title">Modifier le Scénario</h3>
+                    <input type="hidden" id="conf-index">
+                    <div class="form-group"><label>Titre</label><input type="text" id="conf-title"></div>
+                    <div class="form-group"><label>Temps (Secondes)</label><input type="number" id="conf-time"></div>
+                    <div class="form-group"><label>Situation</label><textarea id="conf-text" rows="3"></textarea></div>
+                    <div class="form-group"><label>Option A (Connecteur)</label><input type="text" id="conf-a"></div>
+                    <div class="form-group"><label>Option B (Créateur)</label><input type="text" id="conf-b"></div>
+                    <div class="form-group"><label>Option C (Conquérant)</label><input type="text" id="conf-c"></div>
+                    <div class="form-group"><label>Option D (Architecte)</label><input type="text" id="conf-d"></div>
+                    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 15px;">
+                        <button style="padding: 10px; background:#A0AEC0; border:none; color:white; border-radius:5px;" onclick="cancelEdit()">Annuler</button>
+                        <button style="padding: 10px; background:var(--primary); border:none; color:white; border-radius:5px;" onclick="saveScenario()">Enregistrer</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ONGLET SAUVEGARDE -->
+            <div id="tab-save" class="tab-content">
+                <div class="form-group" style="background: var(--bg); padding: 20px; border-radius: 8px; text-align: center;">
+                    <h4>Exporter / Importer Data</h4>
+                    <p>Ceci sauvegarde Scénarios, Playlist et Paramètres globaux.</p>
+                    <button class="btn-action" style="padding: 15px 30px; font-size: 1.1em;" onclick="exportJSON()"><i class="fas fa-download"></i> Télécharger Sauvegarde JSON</button>
+                    <input type="file" id="import-json" accept=".json" onchange="importJSON(event)" style="display:block; margin: 25px auto 0 auto; padding: 10px; border: 1px dashed var(--primary);">
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Audio Player (Invisible) -->
+    <audio id="bg-music"></audio>
+
+    <script>
+        // ==========================================
+        // DÉFINITIONS THÈMES & DATA
+        // ==========================================
+        const themeColors = {
+            corporate: { primary: '#1A365D', secondary: '#E53E3E', accent: '#3182CE', bg: '#F7FAFC', card: '#FFFFFF', text: '#2D3748' },
+            startup: { primary: '#4A5568', secondary: '#F56565', accent: '#4299E1', bg: '#1A202C', card: '#2D3748', text: '#F7FAFC' },
+            nature: { primary: '#276749', secondary: '#D69E2E', accent: '#38A169', bg: '#F0FFF4', card: '#FFFFFF', text: '#22543D' },
+            sunset: { primary: '#C05621', secondary: '#E53E3E', accent: '#ED8936', bg: '#FFFAF0', card: '#FFFFFF', text: '#7B341E' }
+        };
+
+        const defaultPlaylist = [
+            { title: "Lofi Concentration", url: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" },
+            { title: "Corporate Motivation", url: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_2db509fb3f.mp3" },
+            { title: "Tension & Urgence", url: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3" }
+        ];
+
+        const defaultScenarios = [
+            { title: "Le Crash du Lancement", time: 120, text: "Le jour J, un afflux massif fait crasher votre site web. Vous perdez des ventes.", A: "Vous créez un canal Telegram d'urgence.", B: "Vous bricolez une landing page gratuite en 15 min.", C: "Vous payez un développeur hors de prix.", D: "Vous mettez une page de maintenance propre." },
+            { title: "La Validation de l'Idée", time: 120, text: "Vous avez une excellente idée, mais peu de temps pour la tester.", A: "Vous organisez un événement pour la pitcher.", B: "Vous lancez un MVP (page web test) en une après-midi.", C: "Vous démarchez directement vos 3 plus gros clients cibles.", D: "Vous montez un modèle financier sur Excel avec VAN." },
+            { title: "Le Salon Professionnel", time: 120, text: "Vous obtenez un stand gratuit de dernière minute, sans aucun support.", A: "Vous y allez avec vos cartes de visite pour parler à un maximum de monde.", B: "Vous improvisez une animation interactive avec le matériel du bord.", C: "Vous délaissez le stand vide pour pitcher à voix haute dans les couloirs.", D: "Vous déclinez. Une participation non préparée offre un mauvais ROI." },
+            { title: "L'Étude de Faisabilité", time: 120, text: "Un investisseur exige d'ici demain matin une projection financière détaillée.", A: "Vous appelez un consultant de votre réseau.", B: "Vous envoyez un Pitch Deck visuel de votre MVP.", C: "Vous promettez un ROI fulgurant avec ambition.", D: "Vous ouvrez Excel et sortez un calcul de VAN." },
+            { title: "L'Appel d'Offres", time: 180, text: "Un appel d'offres vital vient de tomber. Le dossier est colossal, délai : 48h.", A: "Vous contactez d'autres entreprises pour un groupement.", B: "Vous intégrez une innovation inattendue dans l'offre.", C: "Nuit blanche pour tout le monde : on ne dort pas.", D: "Vous évaluez d'abord le coût face au risque." },
+            { title: "Le Gouffre (Alerte)", time: 60, text: "ALERTE : Votre plus gros client est en liquidation judiciaire ! Vite réagissez.", A: "Transparence totale : vous proposez des parts.", B: "Pivot instantané : offre payable d'avance.", C: "Vous contractez un prêt personnel à taux élevé.", D: "Vous montez un dossier pour négocier un découvert." },
+            { title: "La Crise Interne", time: 120, text: "Votre associé refuse de lancer le produit, jugeant qu'il n'est pas parfait.", A: "Vous organisez un dîner avec un mentor pour apaiser.", B: "Vous proposez de lancer en 'Bêta' et de gamifier les bugs.", C: "Ultimatum : on lance ou vous rachetez ses parts.", D: "Vous coupez les dépenses pour gagner de la trésorerie." },
+            { title: "La Démission Clé", time: 90, text: "Votre collaborateur le plus brillant démissionne avant une livraison majeure.", A: "Vous organisez un pot pour le garder en freelance.", B: "Vous utilisez des outils No-Code en urgence.", C: "Vous reprenez ses tâches vous-même la nuit.", D: "Vous lancez une procédure de recrutement stricte." },
+            { title: "Le Conflit de Vision", time: 120, text: "Un désaccord profond éclate entre les fondateurs sur la vision à long terme.", A: "Vous invitez tout le monde à prendre un café.", B: "Vous proposez un hackathon interne pour prototyper.", C: "Vous tranchez dans le vif. Le CEO impose.", D: "Vous mettez en place un tableau d'évaluation." },
+            { title: "La Panne Numérique", time: 60, text: "Un squatteur a racheté votre nom de domaine web et réclame une rançon.", A: "Vous appelez pour négocier à l'amiable.", B: "Vous profitez pour faire un rebranding audacieux.", C: "Vous engagez un avocat féroce et menacez.", D: "Vous calculez le coût d'une migration vs la rançon." },
+            { title: "La Guerre des Prix", time: 120, text: "Un concurrent copie votre modèle à -20%. Ma yebka fel oued ghir hjarou.", A: "Vous chouchoutez vos clients (relationnel).", B: "Vous ajoutez une fonctionnalité premium.", C: "Vous lancez une promo agressive de -25%.", D: "Vous refusez, analysez vos marges et optimisez." },
+            { title: "Le Bad Buzz", time: 120, text: "Un client mécontent poste une vidéo dévastatrice qui devient virale.", A: "Vous répondez avec empathie et l'invitez.", B: "Vous tournez une vidéo décalée et drôle en réponse.", C: "Vous lancez une campagne pub pour noyer l'avis.", D: "Vous menez une enquête interne factuelle." },
+            { title: "Le Pivot Stratégique", time: 180, text: "Après 6 mois, le marché ne répond pas. Le modèle n'est pas rentable.", A: "Vous organisez un Focus Group avec vos prospects.", B: "Vous pivotez en adaptant la technologie ailleurs.", C: "Vous doublez les efforts commerciaux pour forcer.", D: "Vous stoppez les opérations pour analyser les données." },
+            { title: "L'Opportunité", time: 120, text: "Vous êtes rentables. Opportunité d'ouvrir une antenne sur Alger (coûteux).", A: "Vous cherchez un partenaire pour une joint-venture.", B: "Vous testez le terrain avec des campagnes digitales.", C: "Vous signez le bail immédiatement pour l'audace.", D: "Vous attendez de sécuriser 6 mois de trésorerie." },
+            { title: "Le Chant des Sirènes", time: 120, text: "Un groupe propose un rachat astronomique, mais va licencier l'équipe.", A: "Vous utilisez l'offre pour faire monter les enchères.", B: "Vous proposez un accord de licence marque blanche.", C: "Refus catégorique : vous comptez les écraser d'ici 3 ans.", D: "Vous acceptez, mais imposez des clauses de sauvegarde." }
+        ];
+
+        let scenarios = []; let playlist = []; let currentTrackIndex = 0; let globalVolume = 0.3;
+        let globalTimer = 120; let globalPlayers = "4 à 5"; let currentTheme = "corporate";
+        let isHost = false; let currentActiveView = 'landing-view';
+        let myPeer = null; let hostConnection = null; let clientConnections = {}; let participantsData = {}; 
+        let currentIndex = 0; let timerInterval, autoAdvanceTimeout; let timeRemaining = 0; let isTimerRunning = false;
+        let autoStartTimer = false; let audioContext; let myAnswers = {}; 
+        
+        let gameState = { view: 'LOBBY', scenarioIndex: 0, timeRemaining: 120, totalScenarios: 15, results: null, theme: 'corporate', presentationIndex: 0 };
+
+        // ==========================================
+        // INIT & LOAD DATA
+        // ==========================================
+        function loadData() {
+            const savedScenarios = localStorage.getItem('sg_scen_v7');
+            scenarios = savedScenarios ? JSON.parse(savedScenarios) : JSON.parse(JSON.stringify(defaultScenarios));
+            
+            const savedPlaylist = localStorage.getItem('sg_playl_v7');
+            playlist = savedPlaylist ? JSON.parse(savedPlaylist) : JSON.parse(JSON.stringify(defaultPlaylist));
+
+            globalTimer = parseInt(localStorage.getItem('sg_time_v7')) || 120;
+            globalPlayers = localStorage.getItem('sg_play_v7') || "4 à 5";
+            currentTheme = localStorage.getItem('sg_theme_v7') || "corporate";
+            globalVolume = parseFloat(localStorage.getItem('sg_vol_v7')) || 0.3;
+
+            document.getElementById('global-timer').value = globalTimer;
+            document.getElementById('global-players').value = globalPlayers;
+            document.getElementById('conf-theme').value = currentTheme;
+            
+            document.getElementById('live-vol-slider').value = globalVolume;
+            document.getElementById('bg-music').volume = globalVolume;
+
+            applyThemeLive(currentTheme);
+            renderScenarioList();
+            renderPlaylistUI();
+            loadTrack(0); 
+        }
+
+        function saveData() {
+            localStorage.setItem('sg_scen_v7', JSON.stringify(scenarios));
+            const cleanPlaylist = playlist.filter(p => !p.url.startsWith('blob:'));
+            localStorage.setItem('sg_playl_v7', JSON.stringify(cleanPlaylist));
+            localStorage.setItem('sg_time_v7', globalTimer);
+            localStorage.setItem('sg_play_v7', globalPlayers);
+            localStorage.setItem('sg_theme_v7', currentTheme);
+            localStorage.setItem('sg_vol_v7', globalVolume);
+        }
+
+        function applyThemeLive(forceTheme) {
+            currentTheme = forceTheme || document.getElementById('conf-theme').value;
+            gameState.theme = currentTheme;
+            const t = themeColors[currentTheme]; const root = document.documentElement;
+            root.style.setProperty('--primary', t.primary); root.style.setProperty('--secondary', t.secondary);
+            root.style.setProperty('--accent', t.accent); root.style.setProperty('--bg', t.bg);
+            root.style.setProperty('--card-bg', t.card); root.style.setProperty('--text-dark', t.text);
+            broadcastState(); 
+        }
+
+        // ==========================================
+        // GESTION MUSIQUE & PLAYLIST 
+        // ==========================================
+        const audioPlayer = document.getElementById('bg-music');
+        audioPlayer.addEventListener('ended', nextTrack); 
+
+        function loadTrack(index) {
+            if(playlist.length === 0) return;
+            currentTrackIndex = index % playlist.length;
+            if(currentTrackIndex < 0) currentTrackIndex = playlist.length - 1;
+            audioPlayer.src = playlist[currentTrackIndex].url;
+            document.getElementById('live-track-name').innerText = playlist[currentTrackIndex].title;
+        }
+
+        function toggleMusic() {
+            if(playlist.length === 0) return alert("Playlist vide.");
+            const btn1 = document.getElementById('live-play-btn');
+            if(audioPlayer.paused) { 
+                if(!audioPlayer.src || audioPlayer.src === window.location.href) loadTrack(currentTrackIndex);
+                audioPlayer.play().catch(e=>console.log("Audio blocké")); 
+                if(btn1) btn1.classList.replace('fa-play', 'fa-pause'); 
+            } else { 
+                audioPlayer.pause(); 
+                if(btn1) btn1.classList.replace('fa-pause', 'fa-play'); 
+            }
+        }
+
+        function stopMusic() {
+            audioPlayer.pause(); audioPlayer.currentTime = 0;
+            const btn1 = document.getElementById('live-play-btn');
+            if(btn1) btn1.classList.replace('fa-pause', 'fa-play');
+        }
+
+        function nextTrack() {
+            if(playlist.length <= 1) return;
+            const wasPlaying = !audioPlayer.paused;
+            loadTrack(currentTrackIndex + 1);
+            if(wasPlaying) audioPlayer.play();
+        }
+
+        function prevTrack() {
+            if(playlist.length <= 1) return;
+            const wasPlaying = !audioPlayer.paused;
+            loadTrack(currentTrackIndex - 1);
+            if(wasPlaying) audioPlayer.play();
+        }
+
+        function changeLiveVolume(val) {
+            globalVolume = parseFloat(val);
+            audioPlayer.volume = globalVolume;
+            saveData();
+        }
+
+        function renderPlaylistUI() {
+            const container = document.getElementById('playlist-container'); container.innerHTML = "";
+            if(playlist.length === 0) container.innerHTML = "<p>Aucune piste.</p>";
+            playlist.forEach((track, i) => {
+                const isBlob = track.url.startsWith('blob:');
+                container.innerHTML += `
+                    <div class="list-item">
+                        <div style="flex-grow:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <strong>${i+1}. ${track.title}</strong> ${isBlob ? '<span style="color:#E53E3E; font-size:0.8em;">(Fichier local)</span>' : ''}
+                        </div>
+                        <div class="list-actions">
+                            <button class="btn-primary" onclick="loadTrack(${i}); toggleMusic();" title="Jouer"><i class="fas fa-play"></i></button>
+                            <button class="btn-delete" onclick="deleteTrack(${i})" title="Supprimer"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function addTrackToPlaylist() {
+            const title = document.getElementById('new-track-title').value;
+            const url = document.getElementById('new-track-url').value;
+            if(!title || !url) return alert("Remplissez le titre et l'URL.");
+            playlist.push({ title: title, url: url });
+            document.getElementById('new-track-title').value = ""; document.getElementById('new-track-url').value = "";
+            saveData(); renderPlaylistUI();
+            if(playlist.length === 1) loadTrack(0);
+        }
+
+        function addLocalTrack(event) {
+            const file = event.target.files[0];
+            if(file) {
+                const url = URL.createObjectURL(file);
+                playlist.push({ title: file.name, url: url });
+                saveData(); renderPlaylistUI();
+                if(playlist.length === 1) loadTrack(0);
+            }
+        }
+
+        function deleteTrack(index) {
+            if(confirm("Supprimer cette piste ?")) {
+                playlist.splice(index, 1);
+                saveData(); renderPlaylistUI();
+                if(currentTrackIndex === index) { stopMusic(); loadTrack(0); }
+            }
+        }
+
+        // ==========================================
+        // GESTION VUES & RESEAU
+        // ==========================================
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            currentActiveView = viewId;
+        }
+
+        function changeGameState(newState) {
+            gameState.view = newState; gameState.totalScenarios = scenarios.length; 
+            if(newState === 'LOBBY') switchView('host-lobby-view');
+            if(newState === 'RULES') switchView('rules-view');
+            if(newState === 'GAME') switchView('game-view');
+            if(newState === 'END') switchView('host-end-view');
+            if(newState === 'PRESENTATION') {
+                gameState.presentationIndex = 0; // Reset au début du diapo
+                switchView('presentation-view');
+                hostUpdatePresentationUI();
+            }
+            broadcastState();
+        }
+
+        function broadcastState() {
+            if(!isHost) return;
+            const payload = { type: 'STATE_SYNC', state: gameState, scenario: scenarios[gameState.scenarioIndex] };
+            for(let pId in clientConnections) { if(clientConnections[pId] && clientConnections[pId].open) clientConnections[pId].send(payload); }
+        }
+
+        // --- ANIMATEUR ---
+        function initHostLobby() {
+            isHost = true; document.body.classList.add('is-host');
+            changeGameState('LOBBY');
+            const myPeerId = "exped-" + Math.random().toString(36).substr(2, 5);
+            myPeer = new Peer(myPeerId);
+            myPeer.on('open', (id) => {
+                const displayId = id.replace('exped-', ''); document.getElementById('display-room-code').innerText = displayId;
+                const joinUrl = window.location.href.split('?')[0] + '?room=' + displayId;
+                document.getElementById('qrcode-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(joinUrl);
+                document.getElementById('qrcode-img').style.display = "block";
+            });
+            myPeer.on('connection', (conn) => {
+                conn.on('data', (data) => {
+                    if(data.type === 'JOIN') {
+                        clientConnections[conn.peer] = conn; participantsData[conn.peer] = { name: data.name, answers: {} };
+                        updateHostLobbyUI(); conn.send({ type: 'STATE_SYNC', state: gameState, scenario: scenarios[gameState.scenarioIndex] });
+                    }
+                    else if(data.type === 'ANSWER') { participantsData[conn.peer].answers[data.index] = data.val; }
+                });
+                conn.on('close', () => { delete clientConnections[conn.peer]; delete participantsData[conn.peer]; updateHostLobbyUI(); });
+            });
+        }
+
+        function updateHostLobbyUI() {
+            const listEl = document.getElementById('host-participants-list'); listEl.innerHTML = "";
+            document.getElementById('participant-count').innerText = Object.keys(participantsData).length;
+            for(let pId in participantsData) listEl.innerHTML += `<div class="participant-badge"><i class="fas fa-user"></i> ${participantsData[pId].name}</div>`;
+        }
+
+        // --- PARTICIPANT ---
+        function clientConnectToHost() {
+            const rawRoom = document.getElementById('join-room-code').value.trim().toLowerCase();
+            const nickname = document.getElementById('join-nickname').value.trim();
+            if(!rawRoom || !nickname) return alert("Remplissez votre pseudo.");
+            document.getElementById('client-status-msg').innerText = "Connexion..."; document.getElementById('btn-connect-client').disabled = true;
+            isHost = false; document.body.classList.add('is-client');
+            myPeer = new Peer(); 
+            myPeer.on('open', (id) => {
+                hostConnection = myPeer.connect("exped-" + rawRoom); 
+                hostConnection.on('open', () => { document.getElementById('client-status-msg').innerText = "Connecté ! En attente..."; hostConnection.send({ type: 'JOIN', name: nickname }); });
+                hostConnection.on('data', (data) => { if(data.type === 'STATE_SYNC') handleStateSync(data.state, data.scenario); });
+            });
+        }
+
+        function handleStateSync(state, sData) {
+            // Synchro Theme
+            if(state.theme && state.theme !== currentTheme) {
+                document.getElementById('conf-theme').value = state.theme; applyThemeLive(state.theme);
+            }
+            // Synchro Vues
+            if(state.view === 'RULES' && currentActiveView !== 'rules-view') switchView('rules-view');
+            else if(state.view === 'GAME' && currentActiveView !== 'game-view') switchView('game-view');
+            else if(state.view === 'END' && currentActiveView !== 'client-end-view') {
+                switchView('client-end-view');
+            }
+            else if(state.view === 'PRESENTATION') {
+                if(currentActiveView !== 'presentation-view') switchView('presentation-view');
+                // Affiche le bon slide
+                document.querySelectorAll('.pres-slide').forEach((el, i) => {
+                    el.style.display = (i === state.presentationIndex) ? 'block' : 'none';
+                    if(i === state.presentationIndex) el.classList.add('active'); else el.classList.remove('active');
+                });
+            }
+            
+            // Synchro Jeu
+            if(state.view === 'GAME' && sData) {
+                if(currentIndex !== state.scenarioIndex) {
+                    currentIndex = state.scenarioIndex;
+                    document.getElementById('s-index').innerText = `${currentIndex + 1}/${state.totalScenarios}`;
+                    document.getElementById('s-title').innerText = sData.title; document.getElementById('s-text').innerText = sData.text;
+                    document.getElementById('opt-a').innerText = sData.A; document.getElementById('opt-b').innerText = sData.B;
+                    document.getElementById('opt-c').innerText = sData.C; document.getElementById('opt-d').innerText = sData.D;
+                    document.querySelectorAll('.option').forEach(el => el.classList.remove('selected'));
+                    if(myAnswers[currentIndex]) document.getElementById('btn-opt-' + myAnswers[currentIndex].toLowerCase()).classList.add('selected');
+                }
+                timeRemaining = state.timeRemaining; displayTime();
+                document.getElementById('timer-display').style.backgroundColor = timeRemaining <= 0 ? '#E53E3E' : 'var(--secondary)';
+            }
+        }
+
+        function clientSelectOption(val) {
+            if(timeRemaining <= 0) return; 
+            document.querySelectorAll('.option').forEach(el => el.classList.remove('selected'));
+            document.getElementById('btn-opt-' + val.toLowerCase()).classList.add('selected');
+            myAnswers[currentIndex] = val; 
+            if(hostConnection && hostConnection.open) hostConnection.send({ type: 'ANSWER', index: currentIndex, val: val });
+        }
+
+        // ==========================================
+        // MOTEUR JEU & CHRONO
+        // ==========================================
+        function hostStartGame() {
+            if(scenarios.length === 0) return alert("Ajoutez au moins un scénario !");
+            if(document.getElementById('conf-music-autostart').checked) toggleMusic();
+            currentIndex = 0; autoStartTimer = false; changeGameState('GAME'); hostUpdateUI(); 
+        }
+
+        function hostUpdateUI() {
+            if(!scenarios[currentIndex]) currentIndex = 0; 
+            const s = scenarios[currentIndex]; gameState.scenarioIndex = currentIndex;
+            document.getElementById('s-index').innerText = `${currentIndex + 1}/${scenarios.length}`;
+            document.getElementById('s-title').innerText = s.title; document.getElementById('s-text').innerText = s.text;
+            document.getElementById('opt-a').innerText = s.A; document.getElementById('opt-b').innerText = s.B;
+            document.getElementById('opt-c').innerText = s.C; document.getElementById('opt-d').innerText = s.D;
+            
+            timeRemaining = s.time || globalTimer; gameState.timeRemaining = timeRemaining;
+            displayTime(); resetTimerUI(); broadcastState(); 
+            
+            const nextBtn = document.getElementById('next-btn');
+            if(currentIndex === scenarios.length - 1) { nextBtn.innerHTML = 'Terminer <i class="fas fa-flag"></i>'; nextBtn.onclick = hostEndGame; } 
+            else { nextBtn.innerHTML = 'Suivant <i class="fas fa-arrow-right"></i>'; nextBtn.onclick = hostNextScenario; }
+            
+            // On enlève le lancement automatique : le formateur a la main totale.
+        }
+
+        function displayTime() {
+            document.getElementById('timer-display').innerText = `${Math.floor(timeRemaining / 60).toString().padStart(2, '0')}:${(timeRemaining % 60).toString().padStart(2, '0')}`;
+            if(timeRemaining <= 10 && timeRemaining > 0) document.getElementById('timer-display').classList.add('timer-danger');
+            else document.getElementById('timer-display').classList.remove('timer-danger');
+        }
+
+        function playBeep() {
+            if(!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if(audioContext.state === 'suspended') audioContext.resume();
+            const osc = audioContext.createOscillator(); const gain = audioContext.createGain();
+            osc.frequency.setValueAtTime(800, audioContext.currentTime); gain.gain.setValueAtTime(0.1, audioContext.currentTime); 
+            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+            osc.connect(gain); gain.connect(audioContext.destination); osc.start(); osc.stop(audioContext.currentTime + 0.1);
+        }
+
+        function hostToggleTimer() {
+            if (isTimerRunning) { resetTimerUI(); document.getElementById('start-timer-btn').innerHTML = '<i class="fas fa-play"></i> Reprendre'; autoStartTimer = false; } 
+            else { autoStartTimer = true; startInterval(); }
+        }
+
+        function startInterval() {
+            document.getElementById('start-timer-btn').innerHTML = '<i class="fas fa-pause"></i> Pause';
+            isTimerRunning = true; clearTimeout(autoAdvanceTimeout);
+            if(!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if(audioContext.state === 'suspended') audioContext.resume();
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (timeRemaining > 0) {
+                    timeRemaining--; gameState.timeRemaining = timeRemaining; displayTime();
+                    if(timeRemaining <= 5) playBeep();
+                    broadcastState(); 
+                } else {
+                    clearInterval(timerInterval); isTimerRunning = false; gameState.timeRemaining = 0;
+                    document.getElementById('timer-display').style.backgroundColor = '#E53E3E';
+                    for(let i=0; i<3; i++) setTimeout(playBeep, i*200);
+                    broadcastState(); 
+                    // Pas de défilement automatique, l'animateur clique sur Suivant
+                }
+            }, 1000);
+        }
+
+        function resetTimerUI() {
+            clearInterval(timerInterval); clearTimeout(autoAdvanceTimeout); isTimerRunning = false;
+            document.getElementById('start-timer-btn').innerHTML = '<i class="fas fa-stopwatch"></i> Démarrer le Chrono';
+            document.getElementById('timer-display').style.backgroundColor = 'var(--secondary)';
+        }
+
+        function hostNextScenario() { if(currentIndex < scenarios.length - 1) { currentIndex++; hostUpdateUI(); } }
+        function hostPrevScenario() { if(currentIndex > 0) { currentIndex--; hostUpdateUI(); } }
+
+        function hostEndGame() {
+            resetTimerUI(); const tbody = document.getElementById('host-results-tbody'); tbody.innerHTML = "";
+            let counts = { 'A': 0, 'B': 0, 'C': 0, 'D': 0 }; let finalResults = {};
+            for(let pId in participantsData) {
+                let p = participantsData[pId]; let scores = { A:0, B:0, C:0, D:0 };
+                for(let i in p.answers) { let ans = p.answers[i]; if(ans && scores[ans] !== undefined) scores[ans]++; }
+                let dominant = 'A'; let max = scores.A;
+                ['B','C','D'].forEach(letter => { if(scores[letter] > max) { max = scores[letter]; dominant = letter; } });
+                finalResults[pId] = { scores: scores, dominant: dominant }; counts[dominant]++; 
+            }
+            gameState.results = finalResults;
+            document.getElementById('stat-A').innerText = counts['A']; document.getElementById('stat-B').innerText = counts['B'];
+            document.getElementById('stat-C').innerText = counts['C']; document.getElementById('stat-D').innerText = counts['D'];
+            for(let pId in finalResults) {
+                const r = finalResults[pId]; const name = participantsData[pId].name;
+                tbody.innerHTML += `<tr><td><strong>${name}</strong></td><td>${r.scores.A}</td><td>${r.scores.B}</td><td>${r.scores.C}</td><td>${r.scores.D}</td><td><strong>${r.dominant}</strong></td></tr>`;
+            }
+            if(Object.keys(participantsData).length === 0) tbody.innerHTML = "<tr><td colspan='6'>Aucun participant.</td></tr>";
+            changeGameState('END');
+        }
+
+        // ==========================================
+        // GESTION DU DIAPORAMA DE PRÉSENTATION
+        // ==========================================
+        function hostUpdatePresentationUI() {
+            document.querySelectorAll('.pres-slide').forEach((el, i) => {
+                el.style.display = (i === gameState.presentationIndex) ? 'block' : 'none';
+                if(i === gameState.presentationIndex) el.classList.add('active'); else el.classList.remove('active');
+            });
+            document.getElementById('pres-prev-btn').style.display = gameState.presentationIndex > 0 ? 'inline-block' : 'none';
+            document.getElementById('pres-next-btn').style.display = gameState.presentationIndex < 4 ? 'inline-block' : 'none';
+            broadcastState(); // Sync avec les clients
+        }
+
+        function hostNextSlide() {
+            if(gameState.presentationIndex < 4) {
+                gameState.presentationIndex++;
+                hostUpdatePresentationUI();
+            }
+        }
+
+        function hostPrevSlide() {
+            if(gameState.presentationIndex > 0) {
+                gameState.presentationIndex--;
+                hostUpdatePresentationUI();
+            }
+        }
+
+        // ==========================================
+        // GESTION CONFIG & EXPORT
+        // ==========================================
+        function openConfig() { document.getElementById('config-modal').style.display = 'flex'; }
+        function closeConfig() { document.getElementById('config-modal').style.display = 'none'; }
+        function openTab(id) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); event.target.classList.add('active'); document.getElementById(id).classList.add('active'); }
+        
+        function saveGlobalSettings() {
+            globalTimer = parseInt(document.getElementById('global-timer').value) || 120;
+            globalPlayers = document.getElementById('global-players').value; 
+            applyThemeLive(); saveData(); closeConfig();
+        }
+
+        function prepareAddScenario() {
+            document.getElementById('edit-form-title').innerText = "Ajouter un Scénario"; document.getElementById('conf-index').value = "-1"; 
+            document.getElementById('conf-title').value = ""; document.getElementById('conf-time').value = globalTimer;
+            document.getElementById('conf-text').value = ""; document.getElementById('conf-a').value = ""; document.getElementById('conf-b').value = ""; document.getElementById('conf-c').value = ""; document.getElementById('conf-d').value = "";
+            document.getElementById('edit-scenario-form').style.display = 'block';
+        }
+        function renderScenarioList() {
+            const list = document.getElementById('scenario-list'); list.innerHTML = ""; document.getElementById('scenario-count').innerText = scenarios.length;
+            scenarios.forEach((s, index) => {
+                list.innerHTML += `<div class="list-item"><h4>${index + 1}. ${s.title} <span style="font-weight:normal; font-size:0.9em;">(${s.time}s)</span></h4>
+                <div class="list-actions"><button class="btn-edit" onclick="editScenario(${index})"><i class="fas fa-edit"></i></button><button class="btn-delete" onclick="deleteScenario(${index})"><i class="fas fa-trash"></i></button></div></div>`;
+            }); document.getElementById('edit-scenario-form').style.display = 'none';
+        }
+        function editScenario(index) {
+            const s = scenarios[index]; document.getElementById('edit-form-title').innerText = "Modifier Scénario " + (index + 1); document.getElementById('conf-index').value = index;
+            document.getElementById('conf-title').value = s.title; document.getElementById('conf-time').value = s.time || globalTimer;
+            document.getElementById('conf-text').value = s.text; document.getElementById('conf-a').value = s.A; document.getElementById('conf-b').value = s.B; document.getElementById('conf-c').value = s.C; document.getElementById('conf-d').value = s.D;
+            document.getElementById('edit-scenario-form').style.display = 'block';
+        }
+        function saveScenario() {
+            const index = parseInt(document.getElementById('conf-index').value);
+            const newScen = { title: document.getElementById('conf-title').value, time: parseInt(document.getElementById('conf-time').value), text: document.getElementById('conf-text').value, A: document.getElementById('conf-a').value, B: document.getElementById('conf-b').value, C: document.getElementById('conf-c').value, D: document.getElementById('conf-d').value };
+            if(index === -1) scenarios.push(newScen); else scenarios[index] = newScen;
+            saveData(); renderScenarioList(); if(isHost && gameState.view === 'GAME') hostUpdateUI(); 
+        }
+        function deleteScenario(index) { if(confirm("Supprimer ce scénario ?")) { scenarios.splice(index, 1); saveData(); renderScenarioList(); } }
+        function cancelEdit() { document.getElementById('edit-scenario-form').style.display = 'none'; }
+        
+        function exportJSON() {
+            const cleanPlaylist = playlist.filter(p => !p.url.startsWith('blob:')); // Exclure blobs
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ scenarios: scenarios, timer: globalTimer, players: globalPlayers, theme: currentTheme, playlist: cleanPlaylist, volume: globalVolume }));
+            const anchor = document.createElement('a'); anchor.setAttribute("href", dataStr); anchor.setAttribute("download", "config_serious_game.json");
+            document.body.appendChild(anchor); anchor.click(); anchor.remove();
+        }
+        function importJSON(event) {
+            if(event.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if(data.scenarios) {
+                            scenarios = data.scenarios; globalTimer = data.timer || 120; globalPlayers = data.players || "4 à 5"; currentTheme = data.theme || "corporate";
+                            playlist = data.playlist || defaultPlaylist; globalVolume = data.volume || 0.3;
+                            document.getElementById('global-timer').value = globalTimer; document.getElementById('global-players').value = globalPlayers; document.getElementById('conf-theme').value = currentTheme;
+                            document.getElementById('live-vol-slider').value = globalVolume; document.getElementById('bg-music').volume = globalVolume;
+                            applyThemeLive(currentTheme); saveData(); renderScenarioList(); renderPlaylistUI(); alert("Configuration importée !");
+                        } else alert("Fichier invalide.");
+                    } catch (err) { alert("Erreur JSON."); }
+                }; reader.readAsText(event.target.files[0]);
+            }
+        }
+    </script>
+</body>
+</html>
